@@ -116,6 +116,10 @@ class Document(object):
             raise cls.DoesNotExist
         return one
 
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
     def is_new(self):
         """I have never been saved"""
         return hasattr(self, "id")
