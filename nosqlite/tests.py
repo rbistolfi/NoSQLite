@@ -1,17 +1,18 @@
 # coding: utf-8
 
 
+import db
 import store
 from unittest import TestCase
 
 
-store.init()
+db.init()
 
 
 class NoSqliteTestCase(TestCase):
 
     def setUp(self):
-        store.reset_database()
+        db.reset_database()
 
     def test_save(self):
         """We can store a document in the database"""
@@ -39,7 +40,7 @@ class NoSqliteTestCase(TestCase):
         lotr1.year = 2002
         lotr1.save()
 
-        movies1981 = Movie.find(key="year", value=1981)
+        movies1981 = Movie.find("year", 1981)
         sw2 = next(movies1981)
 
         self.assertEqual(sw1.id, sw2.id)
@@ -57,7 +58,7 @@ class NoSqliteTestCase(TestCase):
         lotr1.year = 2002
         lotr1.save()
 
-        sw2 = Movie.find_one(key="year", value=1981)
+        sw2 = Movie.find_one("year", 1981)
 
         self.assertEqual(sw1.id, sw2.id)
 
@@ -99,9 +100,29 @@ class NoSqliteTestCase(TestCase):
         self.assertEqual(sw1.id, sw2.id)
         self.assertRaises(StopIteration, next, allmovies)
 
+    def test_compound_index(self):
+        """We can search compound indexes"""
+        p1 = Person()
+        p1.first_name = "Alan"
+        p1.last_name = "Kay"
+        p1.birth_year = 1971
+        p1.save()
+        p2 = Person.find_one(["birth_year", "last_name"], [1971, "Kay"])
+        self.assertEqual(p1.id, p2.id)
+
+    def test_does_not_exist(self):
+        self.assertRaises(Movie.DoesNotExist, Movie.find_one, "year", 1992)
+
 
 class Movie(store.Document):
     """Silly document for supporting the tests"""
     indexes = ["year"]
-    name = store.StringField()
-    year = store.IntegerField()
+    name = store.Field()
+    year = store.Field()
+
+
+class Person(store.Document):
+    indexes = ["birth_year", "last_name"], "first_name"
+    first_name = store.Field()
+    last_name = store.Field()
+    birth_year = store.Field()

@@ -4,71 +4,31 @@
 """nosqlite - by rbistolfi"""
 
 
-import sqlite3
+import datetime
 import pickle
 import uuid
-import datetime
 
-
-_conn = None
-
-
-def init_data_store(dbconnection):
-    query = """CREATE TABLE IF NOT EXISTS entities (
-        added_id INTEGER AUTO_INCREMENT PRIMARY KEY,
-        id TEXT NOT NULL UNIQUE,
-        updated TEXT NOT NULL,
-        type TEXT NOT NULL,
-        body BLOB
-    )
-    """
-    c = dbconnection.cursor()
-    c.execute(query)
-    dbconnection.commit()
-
-
-def init(dbname=':memory:'):
-    global _conn
-    _conn = sqlite3.connect(dbname)
-    init_data_store(_conn)
-    return _conn
-
-
-def get_connection():
-    global _conn
-    return _conn
-
-
-def reset_database():
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM entities")
-    conn.commit()
+from .db import get_connection
+from .index import create_index, get_index_table_name, serialize_for_index
 
 
 class DocumentMeta(type):
+    """Setup Document classes"""
 
     def __new__(cls, name, bases, namespace):
+        """Pass active connection to new Document and create indexes"""
         newcls = super(DocumentMeta, cls).__new__(cls, name, bases, namespace)
         newcls.connection = get_connection()
-        indexes = namespace.get("indexes", [])
+        newcls.DoesNotExist = type("DoesNotExist", (Exception,), {})
         for name, field in newcls.fields():
             field.name = "__nosqlite_" + name
-            if name in indexes:
-                cls.create_index(newcls, name, field)
+        indexes = namespace.get("indexes", [])
+        for index in indexes:
+            create_index(newcls, index)
         return newcls
 
-    def create_index(cls, name, field):
-        table_name = "index_" + cls.__name__.lower() + "_" + name
-        query = """CREATE TABLE IF NOT EXISTS {} (
-            id TEXT NOT NULL,
-            value {} NOT NULL
-        )""".format(table_name, field.db_type)
-        cursor = cls.connection.cursor()
-        cursor.execute(query)
-        cls.connection.commit()
-
     def remove(cls, id):
+        """Delete document from the db if it matches id"""
         cursor = cls.connection.cursor()
         cursor.execute("DELETE FROM entities WHERE id=?", [id])
 
@@ -76,11 +36,9 @@ class DocumentMeta(type):
 class Field(object):
     """Mark something to be saved.
     Uses the name class attribute set by the metaclass for storing the value
-    in the object. The `db_type` attribute is set by subclasses and it is used
-    for storing the value in the index tables.
+    in the object.
     """
     name = None
-    db_type = None
 
     def __get__(self, obj, type=None):
         return getattr(obj, self.name)
@@ -90,15 +48,8 @@ class Field(object):
             setattr(obj, self.name, value)
 
 
-class IntegerField(Field):
-    db_type = "INTEGER"
-
-
-class StringField(Field):
-    db_type = "TEXT"
-
-
 class Document(object):
+    """Base class for documents"""
 
     __metaclass__ = DocumentMeta
 
@@ -106,18 +57,14 @@ class Document(object):
 
     @classmethod
     def fields(cls):
+        """Fields defined in this document"""
         for k, v in cls.__dict__.items():
             if isinstance(v, Field):
                 yield k, v
 
     @classmethod
-    def find(cls, key=None, value=None):
-        if key is None:
-            return cls.find_all()
-        return cls.find_in_indexed_field(key, value)
-
-    @classmethod
     def create_instances_from_results(cls, results):
+        """Create instances of this class using db results for initializing it"""
         for added_id, id, updated, klass, body in results:
             instance = cls()
             instance.id = id
@@ -132,31 +79,49 @@ class Document(object):
             yield instance
 
     @classmethod
+    def find(cls, index=None, value=None):
+        """Find documents matching query. If query is empty, return all
+        documents for this type.
+        """
+        if index is None:
+            return cls.find_all()
+        return cls.find_in_indexed_field(index, value)
+
+    @classmethod
     def find_all(cls):
+        """Return all existing documents"""
         cursor = cls.connection.cursor()
         results = cursor.execute("SELECT * FROM entities WHERE type=?", [cls.__name__])
         instances = cls.create_instances_from_results(results)
         return instances
 
     @classmethod
-    def find_in_indexed_field(cls, field_name, value):
-        assert field_name in cls.indexes, "You can only search in indexed columns"
+    def find_in_indexed_field(cls, index, value):
+        """Find items by indexed columns"""
+        assert index in cls.indexes, "You can only search in indexed columns"
         cursor = cls.connection.cursor()
-        table_name = "index_" + cls.__name__.lower() + "_" + field_name
+        table_name = get_index_table_name(cls, index)
+        value = serialize_for_index(value)
         query = "SELECT * FROM entities WHERE id IN (SELECT id FROM {} WHERE value=?) AND type=?".format(table_name)
         results = cursor.execute(query, [value, cls.__name__])
         instances = cls.create_instances_from_results(results)
         return instances
 
     @classmethod
-    def find_one(cls, key=None, value=None):
-        g = cls.find(key=key, value=value)
-        return next(g)
+    def find_one(cls, index=None, value=None):
+        """Find the 1st instance matching query"""
+        g = cls.find(index, value)
+        one = next(g, None)
+        if one is None:
+            raise cls.DoesNotExist
+        return one
 
     def is_new(self):
+        """I have never been saved"""
         return hasattr(self, "id")
 
     def save(self):
+        """Store or updated document in the db"""
         document = {}
 
         for name, field in self.__class__.fields():
@@ -178,13 +143,19 @@ class Document(object):
             cursor.execute(query, [pickled, now, self.id])
 
         for index in self.indexes:
-            table_name = "index_" + self.__class__.__name__.lower() + "_" + index
-            value = getattr(self, index)
+            table_name = get_index_table_name(self.__class__, index)
+            if isinstance(index, basestring):
+                value = getattr(self, index)
+            else:
+                value = tuple(getattr(self, field) for field in index)
+            value = serialize_for_index(value)
             query = "INSERT INTO {} VALUES (?, ?)".format(table_name)
             cursor.execute(query, [self.id, value])
 
         self.connection.commit()
 
     def delete(self):
+        """Remove this document from the db"""
         cursor = self.connection.cursor()
         cursor.execute("DELETE FROM entities WHERE id=?", [self.id])
+        self.connection.commit()
