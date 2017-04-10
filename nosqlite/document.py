@@ -40,8 +40,12 @@ class Field(object):
     """
     name = None
 
+    def __init__(self, default=None, required=False):
+        self.default = default
+        self.required = required
+
     def __get__(self, obj, type=None):
-        return getattr(obj, self.name)
+        return getattr(obj, self.name, self.default)
 
     def __set__(self, obj, value, type=None):
         if obj:
@@ -130,6 +134,8 @@ class Document(object):
 
         for name, field in self.__class__.fields():
             value = getattr(self, name)
+            if value is None and field.required:
+                raise TypeError("Required field {} is missing".format(name))
             document[name] = value
 
         cursor = self.connection.cursor()

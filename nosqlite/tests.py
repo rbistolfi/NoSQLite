@@ -113,15 +113,29 @@ class NoSqliteTestCase(TestCase):
     def test_does_not_exist(self):
         self.assertRaises(Movie.DoesNotExist, Movie.find_one, "year", 1992)
 
+    def test_required(self):
+        """Document with missing required fields can't be saved"""
+        movie = Movie(year=2012)
+        self.assertRaises(TypeError, movie.save)
+
+    def test_default(self):
+        """Field defines a default"""
+        movie = Movie(name="Blade Runner")
+        movie.save()
+        movie = Movie.find_one("year", 42)
+        self.assertEqual(movie.name, "Blade Runner")
+        self.assertEqual(movie.year, 42)
+
 
 class Movie(Document):
     """Silly document for supporting the tests"""
     indexes = ["year"]
-    name = Field()
-    year = Field()
+    name = Field(required=True)
+    year = Field(default=42)
 
 
 class Person(Document):
+    """Another silly document, this time with compound index"""
     indexes = ["birth_year", "last_name"], "first_name"
     first_name = Field()
     last_name = Field()
