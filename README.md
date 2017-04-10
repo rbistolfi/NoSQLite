@@ -1,6 +1,6 @@
 # NoSQLite
 
-Super simple on top of SQLite written in Python, inspired by
+Super simple NoSQL style data store on top of SQLite written in Python, inspired by
 http://backchannel.org/blog/friendfeed-schemaless-mysql
 
 
