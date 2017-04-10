@@ -2,7 +2,7 @@
 
 
 import db
-import store
+from document import Document, Field
 from unittest import TestCase
 
 
@@ -114,15 +114,15 @@ class NoSqliteTestCase(TestCase):
         self.assertRaises(Movie.DoesNotExist, Movie.find_one, "year", 1992)
 
 
-class Movie(store.Document):
+class Movie(Document):
     """Silly document for supporting the tests"""
     indexes = ["year"]
-    name = store.Field()
-    year = store.Field()
+    name = Field()
+    year = Field()
 
 
-class Person(store.Document):
+class Person(Document):
     indexes = ["birth_year", "last_name"], "first_name"
-    first_name = store.Field()
-    last_name = store.Field()
-    birth_year = store.Field()
+    first_name = Field()
+    last_name = Field()
+    birth_year = Field()

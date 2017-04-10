@@ -122,7 +122,7 @@ class Document(object):
 
     def is_new(self):
         """I have never been saved"""
-        return hasattr(self, "id")
+        return not hasattr(self, "id")
 
     def save(self):
         """Store or updated document in the db"""
@@ -134,17 +134,16 @@ class Document(object):
 
         cursor = self.connection.cursor()
 
-        now = datetime.datetime.now().isoformat()
+        self.updated = datetime.datetime.now().isoformat()
         pickled = pickle.dumps(document)
 
-        if not self.is_new():
+        if self.is_new():
             self.id = str(uuid.uuid4())
-            self.updated = now
             query = "INSERT INTO entities (id, updated, type, body) VALUES (?, ?, ?, ?)"
             cursor.execute(query, [self.id, self.updated, self.__class__.__name__, pickled])
         else:
             query = "UPDATE entities SET body=?, updated=? WHERE id=?"
-            cursor.execute(query, [pickled, now, self.id])
+            cursor.execute(query, [pickled, self.updated, self.id])
 
         for index in self.indexes:
             table_name = get_index_table_name(self.__class__, index)
