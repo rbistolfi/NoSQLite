@@ -120,6 +120,34 @@ class Document(object):
             raise cls.DoesNotExist
         return one
 
+    @classmethod
+    def find_latest(cls, index=None, value=None):
+        """Find last inserted document"""
+        cursor = cls.connection.cursor()
+
+        if index is not None and value is not None:
+            table_name = get_index_table_name(cls, index)
+            value = serialize_for_index(value)
+            query = """
+                SELECT * FROM entities
+                WHERE id IN (SELECT id FROM {} WHERE value=?)
+                AND type=?
+                ORDER BY added_id DESC
+                LIMIT 1
+            """.format(table_name)
+            results = cursor.execute(query, [value, cls.__name__])
+        else:
+            query = """
+                SELECT * FROM entities
+                WHERE type=?
+                ORDER BY added_id
+                LIMIT 1
+            """.format(table_name)
+            results = cursor.execute(query, [cls.__name__])
+
+        instances = cls.create_instances_from_results(results)
+        return next(instances, None)
+
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -145,8 +173,8 @@ class Document(object):
 
         if self.is_new():
             self.id = str(uuid.uuid4())
-            query = "INSERT INTO entities (id, updated, type, body) VALUES (?, ?, ?, ?)"
-            cursor.execute(query, [self.id, self.updated, self.__class__.__name__, pickled])
+            query = "INSERT INTO entities (added_id, id, updated, type, body) VALUES (?, ?, ?, ?, ?)"
+            cursor.execute(query, [None, self.id, self.updated, self.__class__.__name__, pickled])
         else:
             query = "UPDATE entities SET body=?, updated=? WHERE id=?"
             cursor.execute(query, [pickled, self.updated, self.id])
@@ -160,6 +188,11 @@ class Document(object):
             value = serialize_for_index(value)
             query = "INSERT INTO {} VALUES (?, ?)".format(table_name)
             cursor.execute(query, [self.id, value])
+
+        for attr in dir(self):
+            view_func = getattr(self, attr)
+            if getattr(view_func, 'is_view_function', False):
+                view_func()
 
         self.connection.commit()
 

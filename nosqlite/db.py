@@ -10,7 +10,7 @@ _conn = None
 def init_data_store(dbconnection):
     """Create system tables"""
     query = """CREATE TABLE IF NOT EXISTS entities (
-        added_id INTEGER AUTO_INCREMENT PRIMARY KEY,
+        added_id INTEGER PRIMARY KEY,
         id TEXT NOT NULL UNIQUE,
         updated TEXT NOT NULL,
         type TEXT NOT NULL,
@@ -19,6 +19,7 @@ def init_data_store(dbconnection):
     """
     c = dbconnection.cursor()
     c.execute(query)
+    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS entities_by_added_id ON entities(added_id)")
     c.execute("CREATE INDEX IF NOT EXISTS entities_by_id ON entities(id)")
     c.execute("CREATE INDEX IF NOT EXISTS entities_by_id_type ON entities(id, type)")
     dbconnection.commit()

@@ -2,11 +2,11 @@
 
 
 import db
+db.init()  # noqa
+
 from document import Document, Field
+from view import view
 from unittest import TestCase
-
-
-db.init()
 
 
 class NoSqliteTestCase(TestCase):
@@ -126,6 +126,13 @@ class NoSqliteTestCase(TestCase):
         self.assertEqual(movie.name, "Blade Runner")
         self.assertEqual(movie.year, 42)
 
+    def test_view(self):
+        """Test view functions"""
+        for i in range(10):
+            n = Product(price=i)
+            n.save()
+        self.assertEqual(n.average.latest(), 4.5)
+
 
 class Movie(Document):
     """Silly document for supporting the tests"""
@@ -140,3 +147,18 @@ class Person(Document):
     first_name = Field()
     last_name = Field()
     birth_year = Field()
+
+
+class Product(Document):
+    indexes = ["name"]
+    name = Field()
+    price = Field()
+
+    @view
+    def average(self, docs, previous_result=None):
+        s = 0.0
+        l = 0.0
+        for doc in docs:
+            s += doc.price
+            l += 1
+        return s / l
