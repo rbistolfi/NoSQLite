@@ -156,7 +156,7 @@ class Product(Document):
     price = Field()
 
     @view
-    def average(self, docs, previous_result=None):
+    def average(self, docs, previous_result=None, is_new=False):
         s = 0.0
         l = 0.0
         for doc in docs:

@@ -5,34 +5,32 @@ http://backchannel.org/blog/friendfeed-schemaless-mysql
 
 
     >>> from nosqlite import init, Document, Field
+    >>> init(':memory:')
     >>> from nosqlite.view import view
 
 
-    >>> init("/tmp/test.db")
-
-
     >>> class Movie(Document):
-    ...    indexes = ["director"]
-    ...    name = Field()
-    ...    director = Field()
-    ...    price = Field()
+    ...     indexes = ["director"]
+    ...     name = Field()
+    ...     director = Field()
     ...
-    ...    @view
-    ...    def count_by_director(self, docs, previous_result=None):
-    ...        """View funcs are called on save"""
-    ...        if previous_result is None:
-    ...            return {self.director: 1}
-    ...        else:
-    ...            prev = previous_result.get(self.director, 0)
-    ...            previous_result[self.director] = prev + 1
-    ...            return previous_result
+    ...     @view
+    ...     def count_by_director(self, docs, previous_result=None, is_new=False):
+    ...         """View funcs are called on save"""
+    ...         if is_new:
+    ...             if not previous_result:
+    ...                 return {self.director: 1}
+    ...             else:
+    ...                 previous_result.setdefault(self.director, 0)
+    ...                 previous_result[self.director] += 1
+    ...                 return previous_result
 
 
-    >>> sw1 = Movie(name="Star Wars, A New Hope", director="Lucas", price=19.99)
+    >>> sw1 = Movie(name="Star Wars, A New Hope", director="Lucas")
     >>> sw1.save()
-    >>> sw2 = Movie(name="Star Wars, The Empire Strikes Back", director="Lucas", price=99.99)
+    >>> sw2 = Movie(name="Star Wars, The Empire Strikes Back", director="Lucas")
     >>> sw2.save()
-    >>> lotr = Movie(name="Lord Of The Rings, The Return of the King", director="Jackson", price=99.99)
+    >>> lotr = Movie(name="Lord Of The Rings, The Return of the King", director="Jackson")
     >>> lotr.save()
 
     >>> lucas_movies = Movie.find("director", "Lucas")

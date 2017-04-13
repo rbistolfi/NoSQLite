@@ -180,7 +180,9 @@ class Document(object):
         self.updated = datetime.datetime.now().isoformat()
         pickled = pickle.dumps(document)
 
-        if self.is_new():
+        is_new = self.is_new()
+
+        if is_new:
             self.id = str(uuid.uuid4())
             query = "INSERT INTO entities (added_id, id, updated, type, body) VALUES (?, ?, ?, ?, ?)"
             cursor.execute(query, [None, self.id, self.updated, self.__class__.__name__, pickled])
@@ -201,7 +203,7 @@ class Document(object):
         for attr in dir(self):
             view_func = getattr(self, attr)
             if getattr(view_func, 'is_view_function', False):
-                view_func()
+                view_func(is_new=is_new)
 
         self.connection.commit()
 

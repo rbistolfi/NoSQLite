@@ -30,19 +30,18 @@ class ViewFunction(object):
         self.type = None
         self.is_view_function = True
 
-    def __call__(self, instance):
+    def __call__(self, instance, is_new=False):
         """Call self.func passing the collection of documents and the previous
         computation result if any.
         """
         docs = self.type.find_all()
         class_name = self.type.__name__
         view_name = self.func.__name__
-
         previous_result = self.latest()
-
-        value = self.func(instance, docs, previous_result=previous_result)
-        result_document = ResultDocument(value=value, type=class_name, view_name=view_name)
-        result_document.save()
+        value = self.func(instance, docs, previous_result=previous_result, is_new=is_new)
+        if value is not None:
+            result_document = ResultDocument(value=value, type=class_name, view_name=view_name)
+            result_document.save()
         return value
 
     def __get__(self, instance, type):
