@@ -57,3 +57,10 @@ class ViewFunction(object):
         result = ResultDocument.find_latest(["type", "view_name"], [class_name, view_name])
         if result:
             return result.value
+
+    def history(self):
+        """Return all the computations"""
+        class_name = self.type.__name__
+        view_name = self.func.__name__
+        results = ResultDocument.find(["type", "view_name"], [class_name, view_name])
+        return (r.value for r in results)

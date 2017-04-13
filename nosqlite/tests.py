@@ -2,7 +2,7 @@
 
 
 import db
-db.init()  # noqa
+db.init(":memory:")  # noqa
 
 from document import Document, Field
 from view import view
@@ -75,8 +75,8 @@ class NoSqliteTestCase(TestCase):
         lotr1.save()
 
         allmovies = Movie.find_all()
-        sw2 = next(allmovies)
         lotr2 = next(allmovies)
+        sw2 = next(allmovies)
         self.assertEqual(sw1.id, sw2.id)
         self.assertEqual(lotr1.id, lotr2.id)
         self.assertRaises(StopIteration, next, allmovies)
@@ -128,10 +128,11 @@ class NoSqliteTestCase(TestCase):
 
     def test_view(self):
         """Test view functions"""
-        for i in range(10):
+        for i in range(5):
             n = Product(price=i)
             n.save()
-        self.assertEqual(n.average.latest(), 4.5)
+        self.assertEqual(Product.average.latest(), 2.0)
+        self.assertEqual(list(Product.average.history()), [2.0, 1.5, 1.0, 0.5, 0.0])
 
 
 class Movie(Document):

@@ -95,7 +95,11 @@ class Document(object):
     def find_all(cls):
         """Return all existing documents"""
         cursor = cls.connection.cursor()
-        results = cursor.execute("SELECT * FROM entities WHERE type=?", [cls.__name__])
+        results = cursor.execute("""
+            SELECT * FROM entities
+            WHERE type=?
+            ORDER BY added_id DESC
+        """, [cls.__name__])
         instances = cls.create_instances_from_results(results)
         return instances
 
@@ -106,7 +110,12 @@ class Document(object):
         cursor = cls.connection.cursor()
         table_name = get_index_table_name(cls, index)
         value = serialize_for_index(value)
-        query = "SELECT * FROM entities WHERE id IN (SELECT id FROM {} WHERE value=?) AND type=?".format(table_name)
+        query = """
+            SELECT * FROM entities
+            WHERE id IN (SELECT id FROM {} WHERE value=?)
+            AND type=?
+            ORDER BY added_id DESC
+        """.format(table_name)
         results = cursor.execute(query, [value, cls.__name__])
         instances = cls.create_instances_from_results(results)
         return instances
