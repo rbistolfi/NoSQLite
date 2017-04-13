@@ -4,26 +4,45 @@ Super simple NoSQL style data store on top of SQLite written in Python, inspired
 http://backchannel.org/blog/friendfeed-schemaless-mysql
 
 
-    from nosqlite import init, Document, Field
+    >>> from nosqlite import init, Document, Field
+    >>> from nosqlite.view import view
 
 
-    init("/tmp/test.db")
+    >>> init("/tmp/test.db")
 
 
-    class Movie(Document):
-        indexes = ["director"]
-        name = Field()
-        director = Field()
+    >>> class Movie(Document):
+    ...    indexes = ["director"]
+    ...    name = Field()
+    ...    director = Field()
+    ...    price = Field()
+    ...
+    ...    @view
+    ...    def count_by_director(self, docs, previous_result=None):
+    ...        """View funcs are called on save"""
+    ...        if previous_result is None:
+    ...            return {self.director: 1}
+    ...        else:
+    ...            prev = previous_result.get(self.director, 0)
+    ...            previous_result[self.director] = prev + 1
+    ...            return previous_result
 
 
-    sw1 = Movie(name="Star Wars, A New Hope", director="Lucas")
-    sw1.save()
-    sw2 = Movie(name="Star Wars, The Empire Strikes Back", director="Lucas")
-    sw2.save()
-    lotr = Movie(name="Lord Of The Rings, The Return of the King", director="Jackson")
-    lotr.save()
+    >>> sw1 = Movie(name="Star Wars, A New Hope", director="Lucas", price=19.99)
+    >>> sw1.save()
+    >>> sw2 = Movie(name="Star Wars, The Empire Strikes Back", director="Lucas", price=99.99)
+    >>> sw2.save()
+    >>> lotr = Movie(name="Lord Of The Rings, The Return of the King", director="Jackson", price=99.99)
+    >>> lotr.save()
 
-    lucas_movies = Movie.find("director", "Lucas")
+    >>> lucas_movies = Movie.find("director", "Lucas")
+    >>> for movie in lucas_movies:
+    ...     print movie.name
+    Star Wars, The Empire Strikes Back
+    Star Wars, A New Hope
+
+    >>> Movie.count_by_director.latest()
+    {'Jackson': 1, 'Lucas': 2}
 
 
 ## What
@@ -33,7 +52,8 @@ http://backchannel.org/blog/friendfeed-schemaless-mysql
 * Data is pickled and stored in SQLite
 * "Indexes" are just persistent maps stored in SQLite
 * You can only search by indexed fields
-* No aggregations or fancy features, just save and find
+* View functions can be used for extra computations
+
 
 ## API
 
@@ -63,6 +83,9 @@ http://backchannel.org/blog/friendfeed-schemaless-mysql
 
 `Field`
     Mark an attribute in a document for being saved
+
+`view(func)`
+    Declare a method of a Document subclass as view function
 
 
 ## License
