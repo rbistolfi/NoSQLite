@@ -79,6 +79,12 @@ http://backchannel.org/blog/friendfeed-schemaless-mysql
 `Document.is_new()`
     Returns True if doc has not been saved, False otherwise
 
+`Document.view_function.latest()`
+    Where view_function is a method decoratd with `@view`. Get latest view function return value
+
+`Document.view_function.history()`
+    Get all the values returned by view_function, orderer by most recent
+
 `Field`
     Mark an attribute in a document for being saved
 
