@@ -1,4 +1,5 @@
 # NoSQLite
+[![CircleCI](https://circleci.com/gh/rbistolfi/NoSQLite.svg?style=svg)](https://circleci.com/gh/rbistolfi/NoSQLite)
 
 Super simple NoSQL style data store on top of SQLite written in Python, inspired by
 http://backchannel.org/blog/friendfeed-schemaless-mysql
@@ -83,7 +84,7 @@ http://backchannel.org/blog/friendfeed-schemaless-mysql
     Returns True if doc has not been saved, False otherwise
 
 `Document.view_function.latest()`
-    Where view_function is a method decoratd with `@view`. Get latest view function return value
+    Where view_function is a method decorated with `@view`. Get latest view function return value
 
 `Document.view_function.history()`
     Get all the values returned by view_function, orderer by most recent
