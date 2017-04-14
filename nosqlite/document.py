@@ -149,9 +149,9 @@ class Document(object):
             query = """
                 SELECT * FROM entities
                 WHERE type=?
-                ORDER BY added_id
+                ORDER BY added_id DESC
                 LIMIT 1
-            """.format(table_name)
+            """
             results = cursor.execute(query, [cls.__name__])
 
         instances = cls.create_instances_from_results(results)

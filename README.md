@@ -73,6 +73,9 @@ http://backchannel.org/blog/friendfeed-schemaless-mysql
 `Document.find_one(index, value)`
     Find first match
 
+`Document.find_latest(index, value)`
+    Find latest match
+
 `Document.find_all()`
     You got it :)
 

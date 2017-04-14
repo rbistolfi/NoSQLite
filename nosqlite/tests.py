@@ -81,6 +81,20 @@ class NoSqliteTestCase(TestCase):
         self.assertEqual(lotr1.id, lotr2.id)
         self.assertRaises(StopIteration, next, allmovies)
 
+    def test_find_latest(self):
+        sw1 = Movie()
+        sw1.name = "Star Wars"
+        sw1.year = 1981
+        sw1.save()
+
+        lotr1 = Movie()
+        lotr1.name = "Lord Of The Rings"
+        lotr1.year = 2002
+        lotr1.save()
+
+        lotr2 = Movie.find_latest()
+        self.assertEqual(lotr1.id, lotr2.id)
+
     def test_delete(self):
         """We can delete a document"""
         sw1 = Movie()
