@@ -1,6 +1,7 @@
 # coding: utf-8
 
 
+import inspect
 from types import MethodType
 from .document import Document, Field
 
@@ -30,18 +31,30 @@ class ViewFunction(object):
         self.type = None
         self.is_view_function = True
 
-    def __call__(self, instance, is_new=False):
+    def __call__(self, instance, is_new=False, deleted=False):
         """Call self.func passing the collection of documents and the previous
         computation result if any.
         """
         docs = self.type.find_all()
         class_name = self.type.__name__
         view_name = self.func.__name__
-        previous_result = self.latest()
-        value = self.func(instance, docs, previous_result=previous_result, is_new=is_new)
+
+        kwargs = {}
+        view_args = inspect.getargspec(self.func).args
+
+        if "previous_result" in view_args:
+            kwargs["previous_result"] = self.latest()
+        if "is_new" in view_args:
+            kwargs["is_new"] = is_new
+        if "deleted" in view_args:
+            kwargs["deleted"] = deleted
+
+        value = self.func(instance, docs, **kwargs)
+
         if value is not None:
             result_document = ResultDocument(value=value, type=class_name, view_name=view_name)
             result_document.save()
+
         return value
 
     def __get__(self, instance, type):

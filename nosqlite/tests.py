@@ -113,6 +113,7 @@ class NoSqliteTestCase(TestCase):
         sw2 = next(allmovies)
         self.assertEqual(sw1.id, sw2.id)
         self.assertRaises(StopIteration, next, allmovies)
+        self.assertTrue(lotr1.is_new())
 
     def test_compound_index(self):
         """We can search compound indexes"""
@@ -148,6 +149,15 @@ class NoSqliteTestCase(TestCase):
         self.assertEqual(Product.average.latest(), 2.0)
         self.assertEqual(list(Product.average.history()), [2.0, 1.5, 1.0, 0.5, 0.0])
 
+    def test_view_delete(self):
+        """View functions are executed on delete also"""
+        for i in range(5):
+            n = Product(price=i)
+            n.save()
+        self.assertEqual(Product.average.latest(), 2.0)
+        n.delete()
+        self.assertEqual(Product.average.latest(), 1.5)
+
 
 class Movie(Document):
     """Silly document for supporting the tests"""
@@ -170,7 +180,7 @@ class Product(Document):
     price = Field()
 
     @view
-    def average(self, docs, previous_result=None, is_new=False):
+    def average(self, docs, is_new=False):
         s = 0.0
         l = 0.0
         for doc in docs:

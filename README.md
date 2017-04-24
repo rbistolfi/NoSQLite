@@ -9,15 +9,21 @@ http://backchannel.org/blog/friendfeed-schemaless-mysql
     >>> init(':memory:')
     >>> from nosqlite.view import view
 
-
     >>> class Movie(Document):
     ...     indexes = ["director"]
     ...     name = Field()
     ...     director = Field()
     ...
     ...     @view
-    ...     def count_by_director(self, docs, previous_result=None, is_new=False):
-    ...         """View funcs are called on save"""
+    ...     def count_by_director(self, docs, previous_result=None, is_new=False, deleted=False):
+    ...         """View funcs are called on save and on delete, passing the
+    ...         existing docs as argument. Additionaly, the following keyword 
+    ...         arguments will be passed if they are present in your view
+    ...         func's signature:
+    ...             previous_result: the view func's previous return value
+    ...             is_new: boolean indicating if document is a new one
+    ...             deleted: True if the document has been deleted
+    ...         """
     ...         if is_new:
     ...             if not previous_result:
     ...                 return {self.director: 1}
@@ -25,6 +31,9 @@ http://backchannel.org/blog/friendfeed-schemaless-mysql
     ...                 previous_result.setdefault(self.director, 0)
     ...                 previous_result[self.director] += 1
     ...                 return previous_result
+    ...         if deleted:
+    ...             previous_result[self.director] -= 1
+    ...             return previous_result
 
 
     >>> sw1 = Movie(name="Star Wars, A New Hope", director="Lucas")
@@ -37,6 +46,7 @@ http://backchannel.org/blog/friendfeed-schemaless-mysql
     >>> lucas_movies = Movie.find("director", "Lucas")
     >>> for movie in lucas_movies:
     ...     print movie.name
+    ...
     Star Wars, The Empire Strikes Back
     Star Wars, A New Hope
 

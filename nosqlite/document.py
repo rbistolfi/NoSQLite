@@ -200,15 +200,21 @@ class Document(object):
             query = "INSERT INTO {} VALUES (?, ?)".format(table_name)
             cursor.execute(query, [self.id, value])
 
-        for attr in dir(self):
-            view_func = getattr(self, attr)
-            if getattr(view_func, 'is_view_function', False):
-                view_func(is_new=is_new)
-
+        execute_view_functions(self, is_new=is_new)
         self.connection.commit()
 
     def delete(self):
         """Remove this document from the db"""
         cursor = self.connection.cursor()
         cursor.execute("DELETE FROM entities WHERE id=?", [self.id])
+        del self.id
+        execute_view_functions(self, deleted=True)
         self.connection.commit()
+
+
+def execute_view_functions(document, *args, **kwargs):
+    """Get view functions from document and execute them"""
+    for attr in dir(document):
+        view_func = getattr(document, attr)
+        if getattr(view_func, 'is_view_function', False):
+            view_func(*args, **kwargs)
