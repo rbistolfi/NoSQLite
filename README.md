@@ -16,24 +16,15 @@ http://backchannel.org/blog/friendfeed-schemaless-mysql
     ...
     ...     @view
     ...     def count_by_director(self, docs, previous_result=None, is_new=False, deleted=False):
-    ...         """View funcs are called on save and on delete, passing the
-    ...         existing docs as argument. Additionaly, the following keyword 
-    ...         arguments will be passed if they are present in your view
-    ...         func's signature:
-    ...             previous_result: the view func's previous return value
-    ...             is_new: boolean indicating if document is a new one
-    ...             deleted: True if the document has been deleted
-    ...         """
+    ...         """View funcs are called on save and on delete"""
     ...         if is_new:
     ...             if not previous_result:
-    ...                 return {self.director: 1}
-    ...             else:
-    ...                 previous_result.setdefault(self.director, 0)
-    ...                 previous_result[self.director] += 1
-    ...                 return previous_result
+    ...                 previous_result = {}
+    ...             previous_result.setdefault(self.director, 0)
+    ...             previous_result[self.director] += 1
     ...         if deleted:
     ...             previous_result[self.director] -= 1
-    ...             return previous_result
+    ...         return previous_result
 
 
     >>> sw1 = Movie(name="Star Wars, A New Hope", director="Lucas")
