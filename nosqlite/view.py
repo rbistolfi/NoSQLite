@@ -60,7 +60,7 @@ class ViewFunction(object):
     def __get__(self, instance, type):
         """Bind this callable to an instance"""
         self.type = type
-        return MethodType(self, instance, type)
+        return MethodType(self, type)
 
     def latest(self):
         """Return latest computation"""

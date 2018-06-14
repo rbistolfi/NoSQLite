@@ -5,7 +5,7 @@ import pickle
 
 
 def get_index_table_name(cls, index):
-    if isinstance(index, basestring):
+    if isinstance(index, str):
         table_name = "index_" + cls.__name__.lower() + "_" + index
     else:
         table_name = "index_" + cls.__name__.lower() + "_" + "_".join(index)

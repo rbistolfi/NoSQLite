@@ -1,11 +1,11 @@
 # coding: utf-8
 
 
-import db
+from . import db
 db.init(":memory:")  # noqa
 
-from document import Document, Field
-from view import view
+from .document import Document, Field
+from .view import view
 from unittest import TestCase
 
 

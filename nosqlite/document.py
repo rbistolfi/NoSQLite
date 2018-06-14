@@ -52,10 +52,8 @@ class Field(object):
             setattr(obj, self.name, value)
 
 
-class Document(object):
+class Document(object, metaclass=DocumentMeta):
     """Base class for documents"""
-
-    __metaclass__ = DocumentMeta
 
     indexes = []
 
@@ -192,7 +190,7 @@ class Document(object):
 
         for index in self.indexes:
             table_name = get_index_table_name(self.__class__, index)
-            if isinstance(index, basestring):
+            if isinstance(index, str):
                 value = getattr(self, index)
             else:
                 value = tuple(getattr(self, field) for field in index)
