@@ -196,9 +196,15 @@ class Document(object):
                 value = getattr(self, index)
             else:
                 value = tuple(getattr(self, field) for field in index)
+
             value = serialize_for_index(value)
-            query = "INSERT INTO {} VALUES (?, ?)".format(table_name)
-            cursor.execute(query, [self.id, value])
+
+            if is_new:
+                query = "INSERT INTO {} VALUES (?, ?)".format(table_name)
+                cursor.execute(query, [self.id, value])
+            else:
+                query = "UPDATE {} SET value=? WHERE id=?".format(table_name)
+                cursor.execute(query, [value, self.id])
 
         execute_view_functions(self, is_new=is_new)
         self.connection.commit()
